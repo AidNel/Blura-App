@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/engine_ring.dart';
-import '../widgets/metric_card.dart';
 import '../services/mock_athlete_data.dart';
 import '../services/load_intelligence.dart';
 import '../services/app_settings_service.dart';
@@ -141,12 +140,12 @@ class _DashboardTab extends StatelessWidget {
                               isTablet: isTablet,
                               isMobile: isMobile,
                             ),
-                      const SizedBox(height: 16),
-                      _buildMetricsGrid(
+                      const SizedBox(height: 14),
+                      _buildSupportingCards(
                         data: data,
+                        intelligence: intelligence,
                         isDesktop: isDesktop,
                         isTablet: isTablet,
-                        isMobile: isMobile,
                       ),
                       const SizedBox(height: 16),
                       _buildFocusCard(intelligence),
@@ -228,23 +227,35 @@ class _DashboardTab extends StatelessWidget {
         border: Border.all(color: AppTheme.accent.withOpacity(0.12)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
             flex: 4,
             child: Column(
               children: [
+                Text(
+                  'BLURA',
+                  style: TextStyle(
+                    color: AppTheme.textPrimary,
+                    fontSize: 14,
+                    letterSpacing: 3,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 14),
                 EngineRing(score: data.engineScore),
                 const SizedBox(height: 14),
                 Text(
-                  '${data.engineScore}',
+                  'Train in the Blue.\nSimplify Training.',
+                  textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: AppTheme.textPrimary,
-                    fontSize: 42,
-                    fontWeight: FontWeight.w800,
-                    height: 1,
+                    color: AppTheme.textPrimary.withOpacity(0.72),
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w500,
+                    height: 1.45,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -280,7 +291,7 @@ class _DashboardTab extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 20),
-          Expanded(flex: 6, child: _buildHeroContent(intelligence)),
+          Expanded(flex: 6, child: _buildHeroContent(intelligence, data.engineScore)),
         ],
       ),
     );
@@ -303,75 +314,61 @@ class _DashboardTab extends StatelessWidget {
       ),
       child: Column(
         children: [
+          Text(
+            'BLURA',
+            style: TextStyle(
+              color: AppTheme.textPrimary,
+              fontSize: isMobile ? 13 : 14,
+              letterSpacing: isMobile ? 2.8 : 3,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 10),
+          EngineRing(score: data.engineScore),
+          const SizedBox(height: 12),
+          Text(
+            'Train in the Blue.\nSimplify Training.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppTheme.textPrimary.withOpacity(0.72),
+              fontSize: isMobile ? 12.5 : 13.5,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 12),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
-                flex: 4,
-                child: Center(child: EngineRing(score: data.engineScore)),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accent.withOpacity(0.14),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    _engineLabel(data.engineScore),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AppTheme.accent,
+                      fontSize: isMobile ? 12 : 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 10),
               Expanded(
-                flex: 5,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Engine Score',
-                      style: TextStyle(
-                        color: AppTheme.textPrimary.withOpacity(0.72),
-                        fontSize: isMobile ? 12.5 : 13.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '${data.engineScore}',
-                      style: TextStyle(
-                        color: AppTheme.textPrimary,
-                        fontSize: isMobile ? 34 : 40,
-                        fontWeight: FontWeight.w800,
-                        height: 1,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.accent.withOpacity(0.14),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        _engineLabel(data.engineScore),
-                        style: TextStyle(
-                          color: AppTheme.accent,
-                          fontSize: isMobile ? 12 : 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      intelligence.engineDescription,
-                      style: TextStyle(
-                        color: AppTheme.textPrimary.withOpacity(0.66),
-                        fontSize: isMobile ? 12.5 : 13.5,
-                        height: 1.35,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Week: ${AppSettingsService.shortDistanceLabel(data.weeklyDistanceKm, settings.unitSystem)}',
-                      style: TextStyle(
-                        color: AppTheme.textPrimary.withOpacity(0.58),
-                        fontSize: 11.8,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  'Week: ${AppSettingsService.shortDistanceLabel(data.weeklyDistanceKm, settings.unitSystem)}',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppTheme.textPrimary.withOpacity(0.58),
+                    fontSize: 11.8,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -396,12 +393,12 @@ class _DashboardTab extends StatelessWidget {
     );
   }
 
-  Widget _buildHeroContent(BlueraLoadAssessment intelligence) {
+  Widget _buildHeroContent(BlueraLoadAssessment intelligence, int engineScore) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Engine status',
+          'Engine $engineScore',
           style: TextStyle(
             color: AppTheme.textPrimary,
             fontSize: 22,
@@ -436,49 +433,114 @@ class _DashboardTab extends StatelessWidget {
     );
   }
 
-  Widget _buildMetricsGrid({
+  Widget _buildSupportingCards({
     required MockAthleteData data,
+    required BlueraLoadAssessment intelligence,
     required bool isDesktop,
     required bool isTablet,
-    required bool isMobile,
   }) {
     return GridView.count(
       crossAxisCount: isDesktop ? 4 : 2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
+      crossAxisSpacing: 10,
+      mainAxisSpacing: 10,
       childAspectRatio: isDesktop
-          ? 1.18
+          ? 1.55
           : isTablet
-          ? 1.12
-          : 1.02,
+          ? 1.45
+          : 1.35,
       children: [
-        MetricCard(
-          title: 'Fitness',
+        _supportingMetricCard(
+          title: 'Durability',
           value: '${data.fitness}',
-          subtitle: 'Strong aerobic base',
-          icon: Icons.favorite_outline,
+          subtitle: 'Built from consistent aerobic work',
+          icon: Icons.shield_outlined,
         ),
-        MetricCard(
+        _supportingMetricCard(
           title: 'Fatigue',
           value: '${data.fatigue}',
-          subtitle: 'Managed load',
+          subtitle: intelligence.loadLabel,
           icon: Icons.bolt_outlined,
         ),
-        MetricCard(
-          title: 'Form',
-          value: data.form > 0 ? '+${data.form}' : '${data.form}',
-          subtitle: _formSubtitle(data.form),
-          icon: Icons.wb_sunny_outlined,
+        _supportingMetricCard(
+          title: 'Blue Time',
+          value: intelligence.zoneLabel,
+          subtitle: '80 / 20 balance alignment',
+          icon: Icons.water_drop_outlined,
         ),
-        MetricCard(
-          title: 'HR Drift',
-          value: '${data.hrDrift.toStringAsFixed(1)}%',
-          subtitle: _hrDriftSubtitle(data.hrDrift),
-          icon: Icons.monitor_heart_outlined,
+        _supportingMetricCard(
+          title: 'Recovery',
+          value: intelligence.recoveryLabel,
+          subtitle: 'Readiness for upcoming sessions',
+          icon: Icons.nightlight_outlined,
         ),
       ],
+    );
+  }
+
+  Widget _supportingMetricCard({
+    required String title,
+    required String value,
+    required String subtitle,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppTheme.textPrimary.withOpacity(0.08)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: AppTheme.accent.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, size: 17, color: AppTheme.accent),
+              ),
+              const Spacer(),
+              Text(
+                title,
+                style: TextStyle(
+                  color: AppTheme.textPrimary.withOpacity(0.72),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              color: AppTheme.textPrimary,
+              fontSize: 19,
+              fontWeight: FontWeight.w800,
+              height: 1,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: AppTheme.textPrimary.withOpacity(0.60),
+              fontSize: 11.5,
+              height: 1.25,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -646,17 +708,5 @@ class _DashboardTab extends StatelessWidget {
     if (score >= 70) return 'Strong';
     if (score >= 60) return 'Building';
     return 'Developing';
-  }
-
-  String _formSubtitle(int form) {
-    if (form >= 5) return 'Fresh enough to push';
-    if (form >= 0) return 'Stable readiness';
-    return 'Load accumulating';
-  }
-
-  String _hrDriftSubtitle(double drift) {
-    if (drift <= 5.0) return 'Stable endurance';
-    if (drift <= 7.0) return 'Monitor decoupling';
-    return 'Efficiency dropping';
   }
 }
