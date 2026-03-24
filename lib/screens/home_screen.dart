@@ -131,21 +131,21 @@ class _DashboardTab extends StatelessWidget {
                     children: [
                       _buildTopHeader(isMobile, settings),
                       const SizedBox(height: 16),
-                      isDesktop
-                          ? _buildDesktopHero(data, intelligence, settings)
-                          : _buildMobileHero(
-                              data: data,
-                              intelligence: intelligence,
-                              settings: settings,
-                              isTablet: isTablet,
-                              isMobile: isMobile,
-                            ),
-                      const SizedBox(height: 14),
+                      _buildPremiumHero(
+                        data: data,
+                        intelligence: intelligence,
+                        settings: settings,
+                        isDesktop: isDesktop,
+                        isTablet: isTablet,
+                        isMobile: isMobile,
+                      ),
+                      const SizedBox(height: 12),
                       _buildSupportingCards(
                         data: data,
                         intelligence: intelligence,
                         isDesktop: isDesktop,
                         isTablet: isTablet,
+                        isMobile: isMobile,
                       ),
                       const SizedBox(height: 16),
                       _buildFocusCard(intelligence),
@@ -187,7 +187,7 @@ class _DashboardTab extends StatelessWidget {
                     ? 'Train smarter. Build durability. Manage load.'
                     : 'Train smarter. Build durability. Manage load.',
                 style: TextStyle(
-                  color: AppTheme.textPrimary.withOpacity(0.68),
+                  color: AppTheme.textSecondary,
                   fontSize: isMobile ? 13.5 : 14.5,
                   height: 1.35,
                 ),
@@ -213,104 +213,40 @@ class _DashboardTab extends StatelessWidget {
     );
   }
 
-  Widget _buildDesktopHero(
-    MockAthleteData data,
-    BlueraLoadAssessment intelligence,
-    AppSettingsData settings,
-  ) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppTheme.card,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: AppTheme.accent.withOpacity(0.12)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            flex: 4,
-            child: Column(
-              children: [
-                Text(
-                  'BLURA',
-                  style: TextStyle(
-                    color: AppTheme.textPrimary,
-                    fontSize: 14,
-                    letterSpacing: 3,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                EngineRing(score: data.engineScore),
-                const SizedBox(height: 14),
-                Text(
-                  'Train in the Blue.\nSimplify Training.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: AppTheme.textPrimary.withOpacity(0.72),
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w500,
-                    height: 1.45,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppTheme.accent.withOpacity(0.14),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    _engineLabel(data.engineScore),
-                    style: TextStyle(
-                      color: AppTheme.accent,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  AppSettingsService.distanceLabel(
-                    data.weeklyDistanceKm,
-                    settings.unitSystem,
-                    decimals: 0,
-                  ),
-                  style: TextStyle(
-                    color: AppTheme.textPrimary.withOpacity(0.70),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 20),
-          Expanded(flex: 6, child: _buildHeroContent(intelligence, data.engineScore)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMobileHero({
+  Widget _buildPremiumHero({
     required MockAthleteData data,
     required BlueraLoadAssessment intelligence,
     required AppSettingsData settings,
+    required bool isDesktop,
     required bool isTablet,
     required bool isMobile,
   }) {
+    final double padding = isMobile ? 16 : 22;
+
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(isMobile ? 16 : 18),
+      padding: EdgeInsets.all(padding),
       decoration: BoxDecoration(
         color: AppTheme.card,
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: AppTheme.accent.withOpacity(0.10)),
+        borderRadius: BorderRadius.circular(isMobile ? 24 : 30),
+        border: Border.all(color: AppTheme.accent.withOpacity(0.18)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.accent.withOpacity(0.14),
+            AppTheme.card,
+            AppTheme.card,
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.accent.withOpacity(0.12),
+            blurRadius: 30,
+            spreadRadius: -10,
+            offset: const Offset(0, 16),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -318,118 +254,94 @@ class _DashboardTab extends StatelessWidget {
             'BLURA',
             style: TextStyle(
               color: AppTheme.textPrimary,
-              fontSize: isMobile ? 13 : 14,
-              letterSpacing: isMobile ? 2.8 : 3,
+              fontSize: isMobile ? 13 : 15,
+              letterSpacing: isMobile ? 3 : 3.6,
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: isMobile ? 12 : 14),
           EngineRing(score: data.engineScore),
-          const SizedBox(height: 12),
+          SizedBox(height: isMobile ? 12 : 14),
           Text(
             'Train in the Blue.\nSimplify Training.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: AppTheme.textPrimary.withOpacity(0.72),
+              color: AppTheme.textSecondary,
               fontSize: isMobile ? 12.5 : 13.5,
-              height: 1.4,
+              fontWeight: FontWeight.w600,
+              height: 1.45,
             ),
           ),
-          const SizedBox(height: 12),
-          Row(
+          SizedBox(height: isMobile ? 12 : 14),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 10,
+            runSpacing: 10,
             children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppTheme.accent.withOpacity(0.14),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    _engineLabel(data.engineScore),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: AppTheme.accent,
-                      fontSize: isMobile ? 12 : 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
+              _heroChip(
+                icon: Icons.workspace_premium_outlined,
+                label: _engineLabel(data.engineScore),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Week: ${AppSettingsService.shortDistanceLabel(data.weeklyDistanceKm, settings.unitSystem)}',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: AppTheme.textPrimary.withOpacity(0.58),
-                    fontSize: 11.8,
-                    fontWeight: FontWeight.w600,
-                  ),
+              _heroChip(
+                icon: Icons.route_outlined,
+                label: AppSettingsService.shortDistanceLabel(
+                  data.weeklyDistanceKm,
+                  settings.unitSystem,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          _statusPill(
-            'Load: ${intelligence.loadLabel}',
-            intelligence.loadLevel != BlueraLoadLevel.high,
+          SizedBox(height: isMobile ? 12 : 14),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: isDesktop ? 560 : 520),
+            child: Column(
+              children: [
+                _statusPill(
+                  'Load: ${intelligence.loadLabel}',
+                  intelligence.loadLevel != BlueraLoadLevel.high,
+                ),
+                const SizedBox(height: 8),
+                _statusPill(
+                  '80 / 20 balance: ${intelligence.zoneLabel}',
+                  intelligence.zoneState == BlueraZoneState.onTarget,
+                ),
+                const SizedBox(height: 8),
+                _statusPill(
+                  'Recovery: ${intelligence.recoveryLabel}',
+                  intelligence.recoveryState == BlueraRecoveryState.good,
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 10),
-          _statusPill(
-            '80 / 20 balance: ${intelligence.zoneLabel}',
-            intelligence.zoneState == BlueraZoneState.onTarget,
-          ),
-          const SizedBox(height: 10),
-          _statusPill(
-            'Recovery: ${intelligence.recoveryLabel}',
-            intelligence.recoveryState == BlueraRecoveryState.good,
-          ),
+          if (!isMobile && isTablet) const SizedBox(height: 2),
         ],
       ),
     );
   }
 
-  Widget _buildHeroContent(BlueraLoadAssessment intelligence, int engineScore) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Engine $engineScore',
-          style: TextStyle(
-            color: AppTheme.textPrimary,
-            fontSize: 22,
-            fontWeight: FontWeight.w700,
+  Widget _heroChip({required IconData icon, required String label}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.background.withOpacity(0.45),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppTheme.accent.withOpacity(0.30)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: AppTheme.accent),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: AppTheme.textPrimary,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          intelligence.engineDescription,
-          style: TextStyle(
-            color: AppTheme.textPrimary.withOpacity(0.70),
-            fontSize: 14,
-            height: 1.45,
-          ),
-        ),
-        const SizedBox(height: 16),
-        _statusPill(
-          'Load: ${intelligence.loadLabel}',
-          intelligence.loadLevel != BlueraLoadLevel.high,
-        ),
-        const SizedBox(height: 10),
-        _statusPill(
-          '80 / 20 balance: ${intelligence.zoneLabel}',
-          intelligence.zoneState == BlueraZoneState.onTarget,
-        ),
-        const SizedBox(height: 10),
-        _statusPill(
-          'Recovery: ${intelligence.recoveryLabel}',
-          intelligence.recoveryState == BlueraRecoveryState.good,
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -438,18 +350,21 @@ class _DashboardTab extends StatelessWidget {
     required BlueraLoadAssessment intelligence,
     required bool isDesktop,
     required bool isTablet,
+    required bool isMobile,
   }) {
     return GridView.count(
       crossAxisCount: isDesktop ? 4 : 2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 10,
-      mainAxisSpacing: 10,
+      crossAxisSpacing: 9,
+      mainAxisSpacing: 9,
       childAspectRatio: isDesktop
-          ? 1.55
+          ? 1.8
           : isTablet
-          ? 1.45
-          : 1.35,
+          ? 1.65
+          : isMobile
+          ? 1.55
+          : 1.6,
       children: [
         _supportingMetricCard(
           title: 'Durability',
@@ -486,10 +401,10 @@ class _DashboardTab extends StatelessWidget {
     required IconData icon,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
       decoration: BoxDecoration(
         color: AppTheme.card,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.textPrimary.withOpacity(0.08)),
       ),
       child: Column(
@@ -499,43 +414,48 @@ class _DashboardTab extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 30,
-                height: 30,
+                width: 28,
+                height: 28,
                 decoration: BoxDecoration(
                   color: AppTheme.accent.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(9),
                 ),
-                child: Icon(icon, size: 17, color: AppTheme.accent),
+                child: Icon(icon, size: 16, color: AppTheme.accent),
               ),
-              const Spacer(),
-              Text(
-                title,
-                style: TextStyle(
-                  color: AppTheme.textPrimary.withOpacity(0.72),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 11.8,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 7),
           Text(
             value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: AppTheme.textPrimary,
-              fontSize: 19,
+              fontSize: 18,
               fontWeight: FontWeight.w800,
               height: 1,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Text(
             subtitle,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: AppTheme.textPrimary.withOpacity(0.60),
-              fontSize: 11.5,
+              color: AppTheme.textSecondary,
+              fontSize: 11.2,
               height: 1.25,
             ),
           ),
@@ -568,7 +488,7 @@ class _DashboardTab extends StatelessWidget {
           Text(
             intelligence.todayFocus,
             style: TextStyle(
-              color: AppTheme.textPrimary.withOpacity(0.70),
+              color: AppTheme.textSecondary,
               fontSize: 14,
               height: 1.45,
             ),
@@ -652,7 +572,7 @@ class _DashboardTab extends StatelessWidget {
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: AppTheme.textPrimary.withOpacity(0.68),
+                    color: AppTheme.textSecondary,
                     fontSize: 13,
                     height: 1.35,
                   ),
@@ -668,12 +588,12 @@ class _DashboardTab extends StatelessWidget {
   Widget _statusPill(String text, bool positive) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
       decoration: BoxDecoration(
         color: positive
-            ? AppTheme.accent.withOpacity(0.10)
-            : AppTheme.background.withOpacity(0.55),
-        borderRadius: BorderRadius.circular(16),
+            ? AppTheme.accent.withOpacity(0.11)
+            : AppTheme.background.withOpacity(0.50),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: positive
               ? AppTheme.accent.withOpacity(0.45)
@@ -685,15 +605,15 @@ class _DashboardTab extends StatelessWidget {
           Icon(
             positive ? Icons.check_circle_outline : Icons.info_outline,
             color: positive ? AppTheme.accent : AppTheme.textPrimary,
-            size: 18,
+            size: 17,
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 9),
           Expanded(
             child: Text(
               text,
               style: TextStyle(
                 color: AppTheme.textPrimary,
-                fontSize: 13.2,
+                fontSize: 12.8,
                 fontWeight: FontWeight.w600,
               ),
             ),
