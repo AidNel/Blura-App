@@ -3,6 +3,18 @@ import 'package:flutter/material.dart';
 class AppTheme {
   static bool _isDark = true;
 
+  // Blura color system
+  static const Color bluePrimary = Color(0xFF2F80FF);
+  static const Color cyanAccent = Color(0xFF00E0FF);
+  static const Color greenPrimary = Color(0xFF22C55E);
+  static const Color greenAccent = Color(0xFF86EFAC);
+  static const Color redPrimary = Color(0xFFEF4444);
+  static const Color redAccent = Color(0xFFFCA5A5);
+  static const Color backgroundDark = Color(0xFF08152D);
+  static const Color backgroundNavy = Color(0xFF0B1F3B);
+  static const Color textPrimaryDark = Color(0xFFEAF2FF);
+  static const Color textSecondaryDark = Color(0xFF9FB3D1);
+
   static void setThemeMode(
     ThemeMode mode, {
     Brightness systemBrightness = Brightness.dark,
@@ -22,27 +34,27 @@ class AppTheme {
 
   static bool get isDark => _isDark;
 
-  static Color get accent => const Color(0xFF4DA3FF);
+  static Color get accent => bluePrimary;
 
   static Color get background =>
-      _isDark ? const Color(0xFF0E1116) : const Color(0xFFF5F7FB);
+      _isDark ? backgroundDark : const Color(0xFFF5F7FB);
 
   static Color get card =>
-      _isDark ? const Color(0xFF171B22) : const Color(0xFFFFFFFF);
+      _isDark ? backgroundNavy : const Color(0xFFFFFFFF);
 
   static Color get textPrimary =>
-      _isDark ? const Color(0xFFF5F7FA) : const Color(0xFF111827);
+      _isDark ? textPrimaryDark : const Color(0xFF111827);
 
   static Color get textSecondary =>
-      _isDark ? const Color(0xFF9AA4B2) : const Color(0xFF6B7280);
+      _isDark ? textSecondaryDark : const Color(0xFF6B7280);
 
   static ThemeData get lightTheme {
     return ThemeData(
       brightness: Brightness.light,
       scaffoldBackgroundColor: const Color(0xFFF5F7FB),
       colorScheme: const ColorScheme.light(
-        primary: Color(0xFF4DA3FF),
-        secondary: Color(0xFF4DA3FF),
+        primary: bluePrimary,
+        secondary: cyanAccent,
         surface: Color(0xFFFFFFFF),
       ),
       useMaterial3: true,
@@ -61,14 +73,14 @@ class AppTheme {
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: Color(0xFFFFFFFF),
-        selectedItemColor: Color(0xFF4DA3FF),
+        selectedItemColor: bluePrimary,
         unselectedItemColor: Color(0xFF6B7280),
         type: BottomNavigationBarType.fixed,
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
-              ? const Color(0xFF4DA3FF)
+              ? bluePrimary
               : const Color(0xFFE5E7EB),
         ),
       ),
@@ -78,37 +90,37 @@ class AppTheme {
   static ThemeData get darkTheme {
     return ThemeData(
       brightness: Brightness.dark,
-      scaffoldBackgroundColor: const Color(0xFF0E1116),
+      scaffoldBackgroundColor: backgroundDark,
       colorScheme: const ColorScheme.dark(
-        primary: Color(0xFF4DA3FF),
-        secondary: Color(0xFF4DA3FF),
-        surface: Color(0xFF171B22),
+        primary: bluePrimary,
+        secondary: cyanAccent,
+        surface: backgroundNavy,
       ),
       useMaterial3: true,
       fontFamily: 'Roboto',
       appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFF0E1116),
-        foregroundColor: Color(0xFFF5F7FA),
+        backgroundColor: backgroundDark,
+        foregroundColor: textPrimaryDark,
         elevation: 0,
       ),
-      cardColor: const Color(0xFF171B22),
-      dividerColor: Color(0x33F5F7FA),
+      cardColor: backgroundNavy,
+      dividerColor: Color(0x33EAF2FF),
       textTheme: const TextTheme(
-        bodyLarge: TextStyle(color: Color(0xFFF5F7FA)),
-        bodyMedium: TextStyle(color: Color(0xFFF5F7FA)),
-        titleLarge: TextStyle(color: Color(0xFFF5F7FA)),
+        bodyLarge: TextStyle(color: textPrimaryDark),
+        bodyMedium: TextStyle(color: textPrimaryDark),
+        titleLarge: TextStyle(color: textPrimaryDark),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: Color(0xFF171B22),
-        selectedItemColor: Color(0xFF4DA3FF),
-        unselectedItemColor: Color(0xFF9AA4B2),
+        backgroundColor: backgroundNavy,
+        selectedItemColor: bluePrimary,
+        unselectedItemColor: textSecondaryDark,
         type: BottomNavigationBarType.fixed,
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
-              ? const Color(0xFF4DA3FF)
-              : const Color(0xFF374151),
+              ? cyanAccent
+              : textSecondaryDark,
         ),
       ),
     );
