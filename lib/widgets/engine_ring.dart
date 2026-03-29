@@ -256,21 +256,21 @@ class _RingPalette {
     switch (state) {
       case BlueraEngineState.green:
         return const _RingPalette(
-          core: Color(0xFF35D99E),
-          highlight: Color(0xFF7CF1C5),
-          glow: Color(0xFF2BB884),
+          core: Color(0xFF16C47F),
+          highlight: Color(0xFF66E5B2),
+          glow: Color(0xFF10A66B),
         );
       case BlueraEngineState.red:
         return const _RingPalette(
-          core: Color(0xFFFF5A73),
-          highlight: Color(0xFFFF8A9E),
-          glow: Color(0xFFFF4765),
+          core: Color(0xFFFF3D5E),
+          highlight: Color(0xFFFF8BA0),
+          glow: Color(0xFFE62C4C),
         );
       case BlueraEngineState.blue:
         return const _RingPalette(
-          core: Color(0xFF4DA3FF),
-          highlight: Color(0xFF8FC8FF),
-          glow: Color(0xFF3A8CE2),
+          core: Color(0xFF2F80FF),
+          highlight: Color(0xFF7CB4FF),
+          glow: Color(0xFF1D66D8),
         );
     }
   }
