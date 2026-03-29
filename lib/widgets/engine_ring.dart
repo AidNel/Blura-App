@@ -2,18 +2,17 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../services/load_intelligence.dart';
 import '../theme/app_theme.dart';
-
-enum EngineRingState { blue, optimized, fatigue }
 
 class EngineRing extends StatelessWidget {
   final int score;
-  final EngineRingState state;
+  final BlueraEngineState state;
 
   const EngineRing({
     super.key,
     required this.score,
-    this.state = EngineRingState.blue,
+    this.state = BlueraEngineState.blue,
   });
 
   @override
@@ -26,7 +25,7 @@ class EngineRing extends StatelessWidget {
 
     return TweenAnimationBuilder<double>(
       tween: Tween<double>(begin: 0, end: clampedScore / 100),
-      duration: const Duration(milliseconds: 950),
+      duration: const Duration(milliseconds: 900),
       curve: Curves.easeOutCubic,
       builder: (context, value, _) {
         return SizedBox(
@@ -69,33 +68,52 @@ class _CenterScore extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double diameter = isMobile ? 86 : 106;
+    final double diameter = isMobile ? 92 : 112;
 
     return Container(
       width: diameter,
       height: diameter,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: palette.glow.withOpacity(0.2),
+            blurRadius: 18,
+            spreadRadius: 1.2,
+          ),
+        ],
         gradient: RadialGradient(
           colors: [
-            palette.core.withOpacity(0.22),
-            palette.core.withOpacity(0.08),
+            palette.core.withOpacity(0.26),
+            AppTheme.card.withOpacity(0.94),
           ],
+          stops: const [0.0, 1.0],
         ),
         border: Border.all(
           width: 1.2,
-          color: palette.core.withOpacity(0.30),
+          color: palette.core.withOpacity(0.36),
         ),
       ),
-      alignment: Alignment.center,
-      child: Text(
-        '$score',
-        style: TextStyle(
-          color: AppTheme.textPrimary,
-          fontWeight: FontWeight.w700,
-          fontSize: isMobile ? 28 : 34,
-          letterSpacing: 0.3,
-          height: 1,
+      child: Container(
+        margin: const EdgeInsets.all(7),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: AppTheme.card.withOpacity(0.78),
+          border: Border.all(
+            color: AppTheme.textPrimary.withOpacity(0.08),
+            width: 1,
+          ),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          '$score',
+          style: TextStyle(
+            color: AppTheme.textPrimary,
+            fontWeight: FontWeight.w800,
+            fontSize: isMobile ? 30 : 36,
+            letterSpacing: 0.2,
+            height: 1,
+          ),
         ),
       ),
     );
@@ -124,21 +142,28 @@ class _EngineRingPainter extends CustomPainter {
 
     const double startAngle = -math.pi / 2;
     const double sweepTotal = math.pi * 2;
-    final double gap = (isMobile ? 7.5 : 8.5) / radius;
+    final double gap = (isMobile ? 7.2 : 8.2) / radius;
     final double segmentSweep = (sweepTotal - (gap * _segments)) / _segments;
+
+    final Paint outerGlow = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = strokeWidth + 5
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8)
+      ..color = palette.glow.withOpacity(0.14);
 
     final Paint trackPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeWidth = strokeWidth
-      ..color = AppTheme.textPrimary.withOpacity(0.09);
+      ..color = AppTheme.textPrimary.withOpacity(0.10);
 
     final Paint glowPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
-      ..strokeWidth = strokeWidth + 2.0
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5.0)
-      ..color = palette.glow.withOpacity(0.30);
+      ..strokeWidth = strokeWidth + 2
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.5)
+      ..color = palette.glow.withOpacity(0.34);
 
     final Paint progressPaint = Paint()
       ..style = PaintingStyle.stroke
@@ -148,12 +173,12 @@ class _EngineRingPainter extends CustomPainter {
         startAngle: startAngle,
         endAngle: startAngle + sweepTotal,
         colors: [
-          palette.core.withOpacity(0.88),
+          palette.core.withOpacity(0.82),
           palette.highlight,
           palette.core,
-          palette.core.withOpacity(0.88),
+          palette.core.withOpacity(0.82),
         ],
-        stops: const [0.00, 0.30, 0.78, 1.00],
+        stops: const [0.0, 0.28, 0.75, 1.0],
       ).createShader(ringRect);
 
     final double progressScaled = progress.clamp(0.0, 1.0) * _segments;
@@ -165,6 +190,7 @@ class _EngineRingPainter extends CustomPainter {
       final double fill = (progressScaled - i).clamp(0.0, 1.0);
       if (fill > 0) {
         final double fillSweep = segmentSweep * fill;
+        canvas.drawArc(ringRect, angleStart, fillSweep, false, outerGlow);
         canvas.drawArc(ringRect, angleStart, fillSweep, false, glowPaint);
         canvas.drawArc(ringRect, angleStart, fillSweep, false, progressPaint);
       }
@@ -175,21 +201,18 @@ class _EngineRingPainter extends CustomPainter {
 
   void _drawArrow(Canvas canvas, Offset center, double radius, double strokeWidth) {
     final double arrowAngle = -math.pi / 3.0;
-    final double arrowDistance = radius + strokeWidth * 0.50;
-    final Offset tip = center +
-        Offset(math.cos(arrowAngle) * arrowDistance, math.sin(arrowAngle) * arrowDistance);
+    final double arrowDistance = radius + strokeWidth * 0.52;
+    final Offset tip = center + Offset(math.cos(arrowAngle) * arrowDistance, math.sin(arrowAngle) * arrowDistance);
 
     final double baseDistance = arrowDistance - (isMobile ? 10 : 12);
-    final Offset baseCenter = center +
-        Offset(math.cos(arrowAngle) * baseDistance, math.sin(arrowAngle) * baseDistance);
+    final Offset baseCenter =
+        center + Offset(math.cos(arrowAngle) * baseDistance, math.sin(arrowAngle) * baseDistance);
 
     final double halfWidth = isMobile ? 4.8 : 5.6;
     final double perpAngle = arrowAngle + math.pi / 2;
 
-    final Offset left = baseCenter +
-        Offset(math.cos(perpAngle) * halfWidth, math.sin(perpAngle) * halfWidth);
-    final Offset right = baseCenter -
-        Offset(math.cos(perpAngle) * halfWidth, math.sin(perpAngle) * halfWidth);
+    final Offset left = baseCenter + Offset(math.cos(perpAngle) * halfWidth, math.sin(perpAngle) * halfWidth);
+    final Offset right = baseCenter - Offset(math.cos(perpAngle) * halfWidth, math.sin(perpAngle) * halfWidth);
 
     final Path arrow = Path()
       ..moveTo(tip.dx, tip.dy)
@@ -197,14 +220,14 @@ class _EngineRingPainter extends CustomPainter {
       ..lineTo(right.dx, right.dy)
       ..close();
 
+    final Paint arrowGlowPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3)
+      ..color = palette.glow.withOpacity(0.75);
+
     final Paint arrowPaint = Paint()
       ..style = PaintingStyle.fill
       ..color = palette.highlight;
-
-    final Paint arrowGlowPaint = Paint()
-      ..style = PaintingStyle.fill
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.0)
-      ..color = palette.glow.withOpacity(0.72);
 
     canvas.drawPath(arrow, arrowGlowPaint);
     canvas.drawPath(arrow, arrowPaint);
@@ -229,25 +252,25 @@ class _RingPalette {
     required this.glow,
   });
 
-  factory _RingPalette.fromState(EngineRingState state) {
+  factory _RingPalette.fromState(BlueraEngineState state) {
     switch (state) {
-      case EngineRingState.optimized:
+      case BlueraEngineState.green:
         return const _RingPalette(
           core: Color(0xFF35D99E),
-          highlight: Color(0xFF75F7C3),
-          glow: Color(0xFF2FBF8A),
+          highlight: Color(0xFF7CF1C5),
+          glow: Color(0xFF2BB884),
         );
-      case EngineRingState.fatigue:
+      case BlueraEngineState.red:
         return const _RingPalette(
           core: Color(0xFFFF5A73),
           highlight: Color(0xFFFF8A9E),
-          glow: Color(0xFFFF4865),
+          glow: Color(0xFFFF4765),
         );
-      case EngineRingState.blue:
+      case BlueraEngineState.blue:
         return const _RingPalette(
           core: Color(0xFF4DA3FF),
-          highlight: Color(0xFF88C5FF),
-          glow: Color(0xFF3B8DE6),
+          highlight: Color(0xFF8FC8FF),
+          glow: Color(0xFF3A8CE2),
         );
     }
   }
@@ -255,10 +278,7 @@ class _RingPalette {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    return other is _RingPalette &&
-        other.core == core &&
-        other.highlight == highlight &&
-        other.glow == glow;
+    return other is _RingPalette && other.core == core && other.highlight == highlight && other.glow == glow;
   }
 
   @override

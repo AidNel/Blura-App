@@ -155,7 +155,7 @@ class _DashboardTab extends StatelessWidget {
         children: [
           EngineRing(
             score: intelligence.engineScore,
-            state: _ringState(intelligence.engineState),
+            state: intelligence.engineState,
           ),
           const SizedBox(height: 10),
           Text(
@@ -290,16 +290,5 @@ class _DashboardTab extends StatelessWidget {
       ),
       child: Text(text, style: TextStyle(color: AppTheme.textPrimary, fontSize: 12, fontWeight: FontWeight.w700)),
     );
-  }
-
-  EngineRingState _ringState(BlueraEngineState state) {
-    switch (state) {
-      case BlueraEngineState.blue:
-        return EngineRingState.blue;
-      case BlueraEngineState.green:
-        return EngineRingState.optimized;
-      case BlueraEngineState.red:
-        return EngineRingState.fatigue;
-    }
   }
 }
