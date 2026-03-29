@@ -6,6 +6,8 @@ enum BlueraRecoveryState { good, monitor, recoveryNeeded }
 
 enum BlueraZoneState { onTarget, slightlyHigh, needsAdjustment }
 
+enum BlueraEngineState { blue, green, red }
+
 class BlueraInsight {
   final String title;
   final String message;
@@ -19,6 +21,11 @@ class BlueraInsight {
 }
 
 class BlueraLoadAssessment {
+  final int engineScore;
+  final int fatigueScore;
+  final int recoveryScore;
+  final int blueBalanceScore;
+  final BlueraEngineState engineState;
   final BlueraLoadLevel loadLevel;
   final BlueraRecoveryState recoveryState;
   final BlueraZoneState zoneState;
@@ -26,11 +33,18 @@ class BlueraLoadAssessment {
   final String recoveryLabel;
   final String zoneLabel;
   final String todayFocus;
+  final String recommendationTitle;
+  final String recommendationDetail;
   final String engineDescription;
   final List<BlueraInsight> quickInsights;
   final List<AthleteRecommendation> recommendations;
 
   const BlueraLoadAssessment({
+    required this.engineScore,
+    required this.fatigueScore,
+    required this.recoveryScore,
+    required this.blueBalanceScore,
+    required this.engineState,
     required this.loadLevel,
     required this.recoveryState,
     required this.zoneState,
@@ -38,6 +52,8 @@ class BlueraLoadAssessment {
     required this.recoveryLabel,
     required this.zoneLabel,
     required this.todayFocus,
+    required this.recommendationTitle,
+    required this.recommendationDetail,
     required this.engineDescription,
     required this.quickInsights,
     required this.recommendations,
@@ -46,88 +62,173 @@ class BlueraLoadAssessment {
 
 class BlueraLoadIntelligence {
   static BlueraLoadAssessment assess(MockAthleteData data) {
-    final loadLevel = _loadLevel(data);
-    final recoveryState = _recoveryState(data);
-    final zoneState = _zoneState(data);
-
-    final loadLabel = _loadLabel(loadLevel);
-    final recoveryLabel = _recoveryLabel(recoveryState);
-    final zoneLabel = _zoneLabel(zoneState);
-
-    final todayFocus = _todayFocus(
-      data: data,
-      loadLevel: loadLevel,
-      recoveryState: recoveryState,
-      zoneState: zoneState,
+    final recoveryScore = _recoveryScore(data);
+    final fatigueScore = _fatigueScore(data);
+    final blueBalanceScore = _blueBalanceScore(data);
+    final engineScore = _engineScore(
+      recoveryScore: recoveryScore,
+      fatigueScore: fatigueScore,
+      blueBalanceScore: blueBalanceScore,
+      fitness: data.fitness,
     );
 
-    final engineDescription = _engineDescription(
-      data: data,
-      loadLevel: loadLevel,
+    final recoveryState = _recoveryState(recoveryScore);
+    final loadLevel = _loadLevel(data, fatigueScore);
+    final zoneState = _zoneState(blueBalanceScore);
+    final engineState = _engineState(
+      engineScore: engineScore,
       recoveryState: recoveryState,
+      loadLevel: loadLevel,
     );
 
-    final quickInsights = _quickInsights(
-      data: data,
-      loadLevel: loadLevel,
+    final recommendation = _dailyRecommendation(
       recoveryState: recoveryState,
-      zoneState: zoneState,
-    );
-
-    final recommendations = _recommendations(
-      data: data,
-      loadLevel: loadLevel,
-      recoveryState: recoveryState,
-      zoneState: zoneState,
+      fatigueScore: fatigueScore,
+      blueBalanceScore: blueBalanceScore,
+      context: data.snapshot.context,
     );
 
     return BlueraLoadAssessment(
+      engineScore: engineScore,
+      fatigueScore: fatigueScore,
+      recoveryScore: recoveryScore,
+      blueBalanceScore: blueBalanceScore,
+      engineState: engineState,
       loadLevel: loadLevel,
       recoveryState: recoveryState,
       zoneState: zoneState,
-      loadLabel: loadLabel,
-      recoveryLabel: recoveryLabel,
-      zoneLabel: zoneLabel,
-      todayFocus: todayFocus,
-      engineDescription: engineDescription,
-      quickInsights: quickInsights,
-      recommendations: recommendations,
+      loadLabel: _loadLabel(loadLevel),
+      recoveryLabel: _recoveryLabel(recoveryState),
+      zoneLabel: _zoneLabel(zoneState),
+      todayFocus: recommendation.$2,
+      recommendationTitle: recommendation.$1,
+      recommendationDetail: recommendation.$2,
+      engineDescription: _engineDescription(engineScore, recoveryScore, fatigueScore),
+      quickInsights: _quickInsights(data, fatigueScore, recoveryScore, blueBalanceScore),
+      recommendations: _recommendations(data, recommendation.$1, recommendation.$2),
     );
   }
 
-  static BlueraLoadLevel _loadLevel(MockAthleteData data) {
-    if (data.fatigue >= 78 ||
-        data.z3z5Percent >= 25 ||
-        data.weeklyHours >= 12) {
+  static int _recoveryScore(MockAthleteData data) {
+    final recovery = data.snapshot.recovery;
+    final rhrPenalty = ((recovery.restingHeartRate - recovery.restingHeartRateBaseline) * 6)
+        .clamp(0, 20)
+        .toDouble();
+    final hrvBonus = ((recovery.hrvMs - recovery.hrvBaselineMs) * 2)
+        .clamp(-14, 14)
+        .toDouble();
+    final sleepScore = ((recovery.sleepHours / recovery.sleepNeedHours) * 22)
+        .clamp(0, 22)
+        .toDouble();
+    final sorenessPenalty = (recovery.soreness * 4).clamp(0, 24).toDouble();
+
+    final score = (62 + hrvBonus + sleepScore - rhrPenalty - sorenessPenalty).round();
+    return score.clamp(0, 100);
+  }
+
+  static int _fatigueScore(MockAthleteData data) {
+    final load = data.snapshot.load;
+    final ratioPenalty = ((load.acuteChronicRatio - 1.0) * 70).clamp(0, 24).toDouble();
+    final monotonyPenalty = ((load.monotony - 1.2) * 22).clamp(0, 20).toDouble();
+    final driftPenalty = ((load.hrDriftPercent - 3.5) * 6).clamp(0, 18).toDouble();
+    final base = data.fatigue.toDouble();
+
+    return (base + ratioPenalty + monotonyPenalty + driftPenalty).round().clamp(0, 100);
+  }
+
+  static int _blueBalanceScore(MockAthleteData data) {
+    final zones = data.snapshot.zones;
+    final blueGap = (zones.bluePercent - 80).abs();
+    final highPenalty = (zones.highPercent - 20).abs() * 1.6;
+    final score = 100 - ((blueGap * 2.1) + highPenalty);
+    return score.round().clamp(0, 100);
+  }
+
+  static int _engineScore({
+    required int recoveryScore,
+    required int fatigueScore,
+    required int blueBalanceScore,
+    required int fitness,
+  }) {
+    final weighted = (fitness * 0.30) +
+        ((100 - fatigueScore) * 0.30) +
+        (recoveryScore * 0.25) +
+        (blueBalanceScore * 0.15);
+    return weighted.round().clamp(0, 100);
+  }
+
+  static BlueraRecoveryState _recoveryState(int recoveryScore) {
+    if (recoveryScore >= 72) return BlueraRecoveryState.good;
+    if (recoveryScore >= 55) return BlueraRecoveryState.monitor;
+    return BlueraRecoveryState.recoveryNeeded;
+  }
+
+  static BlueraLoadLevel _loadLevel(MockAthleteData data, int fatigueScore) {
+    final ratio = data.snapshot.load.acuteChronicRatio;
+    if (fatigueScore >= 78 || ratio >= 1.22 || data.weeklyHours >= 11) {
       return BlueraLoadLevel.high;
     }
-    if (data.weeklyHours >= 9 || data.fatigue >= 60) {
+    if (fatigueScore >= 65 || data.weeklyHours >= 9) {
       return BlueraLoadLevel.build;
     }
-    if (data.weeklyHours >= 6) {
-      return BlueraLoadLevel.balanced;
-    }
+    if (data.weeklyHours >= 6) return BlueraLoadLevel.balanced;
     return BlueraLoadLevel.low;
   }
 
-  static BlueraRecoveryState _recoveryState(MockAthleteData data) {
-    if (data.fatigue >= 78 || data.form < -5) {
-      return BlueraRecoveryState.recoveryNeeded;
-    }
-    if (data.fatigue >= 68 || data.hrDrift > 5.5) {
-      return BlueraRecoveryState.monitor;
-    }
-    return BlueraRecoveryState.good;
+  static BlueraZoneState _zoneState(int blueBalanceScore) {
+    if (blueBalanceScore >= 82) return BlueraZoneState.onTarget;
+    if (blueBalanceScore >= 68) return BlueraZoneState.slightlyHigh;
+    return BlueraZoneState.needsAdjustment;
   }
 
-  static BlueraZoneState _zoneState(MockAthleteData data) {
-    if (data.z1z2Percent >= 80 && data.z3z5Percent <= 20) {
-      return BlueraZoneState.onTarget;
+  static BlueraEngineState _engineState({
+    required int engineScore,
+    required BlueraRecoveryState recoveryState,
+    required BlueraLoadLevel loadLevel,
+  }) {
+    if (recoveryState == BlueraRecoveryState.recoveryNeeded || loadLevel == BlueraLoadLevel.high) {
+      return BlueraEngineState.red;
     }
-    if (data.z3z5Percent <= 24) {
-      return BlueraZoneState.slightlyHigh;
+    if (engineScore >= 78 && recoveryState == BlueraRecoveryState.good) {
+      return BlueraEngineState.green;
     }
-    return BlueraZoneState.needsAdjustment;
+    return BlueraEngineState.blue;
+  }
+
+  static (String, String) _dailyRecommendation({
+    required BlueraRecoveryState recoveryState,
+    required int fatigueScore,
+    required int blueBalanceScore,
+    required DashboardContext context,
+  }) {
+    if (recoveryState == BlueraRecoveryState.recoveryNeeded || fatigueScore >= 80) {
+      return (
+        'Recovery day recommended',
+        'Keep training very light today. Favor easy spin or full rest to reduce stress and restore readiness.',
+      );
+    }
+
+    if (blueBalanceScore < 75 || context.travelFatigue || context.heatStress) {
+      return (
+        'Stay aerobic today',
+        'Hold most work in Z1-Z2 and avoid turning endurance work into tempo. This keeps your week back in the blue.',
+      );
+    }
+
+    return (
+      'You are ready for quality work',
+      'Recovery, fatigue, and zone balance are aligned. A controlled quality session is appropriate today.',
+    );
+  }
+
+  static String _engineDescription(int engineScore, int recoveryScore, int fatigueScore) {
+    if (engineScore >= 80 && recoveryScore >= 70 && fatigueScore <= 65) {
+      return 'Strong readiness with stable load and good freshness.';
+    }
+    if (engineScore >= 70) {
+      return 'Good trajectory. Stay consistent in blue time to keep improving.';
+    }
+    return 'Engine is building. Prioritize recovery and aerobic consistency this week.';
   }
 
   static String _loadLabel(BlueraLoadLevel level) {
@@ -165,170 +266,39 @@ class BlueraLoadIntelligence {
     }
   }
 
-  static String _todayFocus({
-    required MockAthleteData data,
-    required BlueraLoadLevel loadLevel,
-    required BlueraRecoveryState recoveryState,
-    required BlueraZoneState zoneState,
-  }) {
-    if (recoveryState == BlueraRecoveryState.recoveryNeeded) {
-      return 'Keep today light and mostly aerobic. Prioritise recovery and avoid stacking more intensity.';
-    }
-
-    if (loadLevel == BlueraLoadLevel.high) {
-      return 'Your load is high right now. Keep the next session controlled and avoid turning endurance work into tempo.';
-    }
-
-    if (zoneState == BlueraZoneState.needsAdjustment) {
-      return 'Bring the week back toward an 80 / 20 split by keeping the next session mostly Z1 and Z2.';
-    }
-
-    if (data.latestWorkout.recoveryCost >= 65) {
-      return 'Absorb the last key session with low-intensity work before adding more quality.';
-    }
-
-    return 'Load and recovery are in a good place. Continue building durability through controlled aerobic work.';
-  }
-
-  static String _engineDescription({
-    required MockAthleteData data,
-    required BlueraLoadLevel loadLevel,
-    required BlueraRecoveryState recoveryState,
-  }) {
-    if (data.engineScore >= 80 &&
-        recoveryState == BlueraRecoveryState.good &&
-        loadLevel != BlueraLoadLevel.high) {
-      return 'Strong endurance readiness with good freshness, stable load progression and solid durability support.';
-    }
-
-    if (data.engineScore >= 80) {
-      return 'Strong endurance readiness with some recovery and load management still needed to keep momentum.';
-    }
-
-    if (data.engineScore >= 70) {
-      return 'Good endurance foundation with room to improve durability and consistency under load.';
-    }
-
-    return 'Developing endurance foundation with focus needed on consistency, aerobic support and recovery balance.';
-  }
-
-  static List<BlueraInsight> _quickInsights({
-    required MockAthleteData data,
-    required BlueraLoadLevel loadLevel,
-    required BlueraRecoveryState recoveryState,
-    required BlueraZoneState zoneState,
-  }) {
+  static List<BlueraInsight> _quickInsights(
+    MockAthleteData data,
+    int fatigueScore,
+    int recoveryScore,
+    int blueBalanceScore,
+  ) {
     return [
       BlueraInsight(
-        title: 'Load trend',
-        message: loadLevel == BlueraLoadLevel.high
-            ? 'Training load is elevated and needs closer monitoring.'
-            : loadLevel == BlueraLoadLevel.build
-            ? 'Weekly load is building at a productive rate.'
-            : 'Current load is stable and manageable.',
-        positive: loadLevel != BlueraLoadLevel.high,
+        title: 'Fatigue state',
+        message: 'Current fatigue score is $fatigueScore/100 with AC ratio ${data.snapshot.load.acuteChronicRatio.toStringAsFixed(2)}.',
+        positive: fatigueScore < 70,
       ),
       BlueraInsight(
-        title: 'Zone balance',
-        message: zoneState == BlueraZoneState.onTarget
-            ? 'Your recent distribution is aligned well with the 80 / 20 endurance model.'
-            : zoneState == BlueraZoneState.slightlyHigh
-            ? 'Intensity is slightly above target and worth watching.'
-            : 'Your intensity mix is drifting too high and needs correction.',
-        positive: zoneState == BlueraZoneState.onTarget,
+        title: 'Recovery state',
+        message: 'Recovery is $recoveryScore/100 from HRV, RHR, sleep and soreness markers.',
+        positive: recoveryScore >= 65,
       ),
       BlueraInsight(
-        title: 'Recovery',
-        message: recoveryState == BlueraRecoveryState.good
-            ? 'Recovery markers support continued training.'
-            : recoveryState == BlueraRecoveryState.monitor
-            ? 'Recovery is acceptable, but the next hard session should be managed carefully.'
-            : 'Recovery is compromised. A lighter day is the better choice.',
-        positive: recoveryState == BlueraRecoveryState.good,
+        title: 'Blue-time balance',
+        message: 'Blue balance is $blueBalanceScore/100 with ${data.snapshot.zones.bluePercent.toStringAsFixed(0)}% in Z1-Z2.',
+        positive: blueBalanceScore >= 80,
       ),
     ];
   }
 
-  static List<AthleteRecommendation> _recommendations({
-    required MockAthleteData data,
-    required BlueraLoadLevel loadLevel,
-    required BlueraRecoveryState recoveryState,
-    required BlueraZoneState zoneState,
-  }) {
-    final List<AthleteRecommendation> items = [];
-
-    if (recoveryState == BlueraRecoveryState.recoveryNeeded) {
-      items.add(
-        const AthleteRecommendation(
-          title: 'Recovery first',
-          message:
-              'Use an easy Z1 session or full rest to absorb training before adding more load.',
-          warning: true,
-        ),
-      );
-    } else if (recoveryState == BlueraRecoveryState.monitor) {
-      items.add(
-        const AthleteRecommendation(
-          title: 'Keep the next day controlled',
-          message:
-              'Stay mostly aerobic next session so fatigue does not drift upward too quickly.',
-        ),
-      );
-    } else {
-      items.add(
-        const AthleteRecommendation(
-          title: 'Continue building',
-          message:
-              'You are responding well to the current load, so controlled progression remains appropriate.',
-        ),
-      );
-    }
-
-    if (zoneState == BlueraZoneState.needsAdjustment) {
-      items.add(
-        const AthleteRecommendation(
-          title: 'Rebalance intensity',
-          message:
-              'Shift the next sessions toward Z1 and Z2 to bring the week back toward the 80 / 20 target.',
-          warning: true,
-        ),
-      );
-    } else if (zoneState == BlueraZoneState.slightlyHigh) {
-      items.add(
-        const AthleteRecommendation(
-          title: 'Watch intensity drift',
-          message:
-              'Intensity is slightly high, so keep endurance sessions disciplined and easy.',
-        ),
-      );
-    } else {
-      items.add(
-        const AthleteRecommendation(
-          title: '80 / 20 is working',
-          message:
-              'Your zone distribution is supporting durability and aerobic development well.',
-        ),
-      );
-    }
-
-    if (data.latestWorkout.durabilityScore < 75) {
-      items.add(
-        const AthleteRecommendation(
-          title: 'Keep improving durability',
-          message:
-              'Continue steady endurance and controlled tempo work to improve late-session stability.',
-        ),
-      );
-    } else {
-      items.add(
-        const AthleteRecommendation(
-          title: 'Durability is trending well',
-          message:
-              'Your recent sessions suggest that your ability to hold quality deeper into workouts is improving.',
-        ),
-      );
-    }
-
-    return items;
+  static List<AthleteRecommendation> _recommendations(
+    MockAthleteData data,
+    String title,
+    String detail,
+  ) {
+    return [
+      AthleteRecommendation(title: title, message: detail, warning: title == 'Recovery day recommended'),
+      ...data.recommendations,
+    ];
   }
 }
