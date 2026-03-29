@@ -363,7 +363,8 @@ class MockAthleteData {
 class BlueraMockDataService {
   static const MockAthleteData athlete = MockAthleteData(
     engineScore: 81,
-    fitness: 76,
+    // Temporary verification: keep mock athlete in a clearly ready (green) state.
+    fitness: 90,
     fatigue: 58,
     form: 6,
     hrDrift: 4.3,
@@ -518,11 +519,11 @@ class BlueraMockDataService {
       recovery: RecoveryMarkers(
         restingHeartRate: 49,
         restingHeartRateBaseline: 50,
-        hrvMs: 73,
+        hrvMs: 78,
         hrvBaselineMs: 70,
-        sleepHours: 7.7,
+        sleepHours: 8.0,
         sleepNeedHours: 8.0,
-        soreness: 3,
+        soreness: 2,
       ),
       load: LoadMarkers(
         acuteLoad: 612,

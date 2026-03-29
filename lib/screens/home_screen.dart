@@ -143,6 +143,9 @@ class _DashboardTab extends StatelessWidget {
     AppSettingsData settings,
     bool isMobile,
   ) {
+    final int engineScore = intelligence.engineScore;
+    final BlueraEngineState engineState = intelligence.engineState;
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(isMobile ? 16 : 20),
@@ -154,12 +157,12 @@ class _DashboardTab extends StatelessWidget {
       child: Column(
         children: [
           EngineRing(
-            score: intelligence.engineScore,
-            state: intelligence.engineState,
+            score: engineScore,
+            state: engineState,
           ),
           const SizedBox(height: 10),
           Text(
-            'Engine score ${intelligence.engineScore}',
+            'Engine score $engineScore',
             style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w700, fontSize: 18),
           ),
           const SizedBox(height: 4),
