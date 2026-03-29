@@ -179,6 +179,8 @@ class MockWorkoutAnalysis {
 
   double get lowIntensityPercent => z1Percent + z2Percent;
 
+  double get blueTimePercent => lowIntensityPercent;
+
   String get durabilityStatus {
     if (durabilityScore >= 80) return 'Strong';
     if (durabilityScore >= 65) return 'Good';
@@ -195,6 +197,29 @@ class MockWorkoutAnalysis {
     if (recoveryCost >= 80) return 'High cost';
     if (recoveryCost >= 60) return 'Moderate cost';
     return 'Low cost';
+  }
+
+  String get durabilityInsight {
+    if (durabilityScore >= 82 && hrDrift <= 4.5) {
+      return 'Strong aerobic control';
+    }
+    if (durabilityScore >= 72 && hrDrift <= 6) {
+      return 'Blue session executed well';
+    }
+    if (durabilityScore >= 62) {
+      return 'Durability faded late';
+    }
+    return 'Too much drift for a controlled endurance session';
+  }
+
+  String get recommendationText {
+    if (recoveryCost >= 75 || hrDrift > 7.0) {
+      return 'Use a low-pressure recovery ride tomorrow and keep intensity below threshold.';
+    }
+    if (blueTimePercent >= 70 && executionScore >= 80) {
+      return 'Suitable recovery load for this block. Keep the next session aerobic or skills-focused.';
+    }
+    return 'Hold the next ride mostly in blue zones and reduce surges to improve control.';
   }
 }
 
@@ -363,7 +388,6 @@ class MockAthleteData {
 class BlueraMockDataService {
   static const MockAthleteData athlete = MockAthleteData(
     engineScore: 81,
-    // Temporary verification: keep mock athlete in a clearly ready (green) state.
     fitness: 90,
     fatigue: 58,
     form: 6,
@@ -433,15 +457,25 @@ class BlueraMockDataService {
       ],
       insights: [
         WorkoutInsight(
-          title: 'Pacing was controlled',
-          message: 'Power remained stable through the main set with minimal late fade.',
+          title: 'Strong aerobic control',
+          message: 'Power and heart-rate stayed aligned across the main work set.',
           positive: true,
+        ),
+        WorkoutInsight(
+          title: 'Blue session executed well',
+          message: '75% of this ride stayed in Z1/Z2, supporting endurance quality.',
+          positive: true,
+        ),
+        WorkoutInsight(
+          title: 'Durability faded late',
+          message: 'Final block showed mild drift. Keep the next quality day controlled.',
+          positive: false,
         ),
       ],
       recommendations: [
         AthleteRecommendation(
-          title: 'Absorb before next quality',
-          message: 'Keep one easier aerobic day before the next key workout.',
+          title: 'Suitable recovery load',
+          message: 'Plan an aerobic day next and avoid stacking threshold efforts.',
         ),
       ],
     ),
