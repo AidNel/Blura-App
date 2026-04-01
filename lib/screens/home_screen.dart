@@ -93,13 +93,11 @@ class _DashboardTab extends StatelessWidget {
                 children: [
                   _header(isMobile),
                   const SizedBox(height: 14),
-                  _engineCard(data, intelligence, settings, isMobile),
+                  _heroRecommendationCard(data, intelligence, settings, isMobile),
                   const SizedBox(height: 12),
-                  _scoreGrid(intelligence, data, isMobile),
+                  _keySignals(intelligence, data, isMobile),
                   const SizedBox(height: 12),
-                  _recommendationCard(intelligence),
-                  const SizedBox(height: 12),
-                  _quickInsights(intelligence),
+                  _secondaryInsight(intelligence),
                 ],
               ),
             ),
@@ -125,7 +123,7 @@ class _DashboardTab extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Train in the Blue.\nSimplify Training.',
+          'Today at a glance',
           style: TextStyle(
             color: AppTheme.textSecondary,
             fontSize: isMobile ? 13 : 14,
@@ -137,7 +135,7 @@ class _DashboardTab extends StatelessWidget {
     );
   }
 
-  Widget _engineCard(
+  Widget _heroRecommendationCard(
     MockAthleteData data,
     BlueraLoadAssessment intelligence,
     AppSettingsData settings,
@@ -152,35 +150,56 @@ class _DashboardTab extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.card,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppTheme.textPrimary.withOpacity(0.08)),
+        border: Border.all(color: AppTheme.accent.withOpacity(0.22)),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          EngineRing(
-            score: engineScore,
-            state: engineState,
-          ),
-          const SizedBox(height: 10),
           Text(
-            'Engine score $engineScore',
-            style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w700, fontSize: 18),
+            'Today\'s recommendation',
+            style: TextStyle(color: AppTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.w700),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           Text(
-            intelligence.engineDescription,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.35),
+            intelligence.recommendationTitle,
+            style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w800, fontSize: isMobile ? 20 : 22),
           ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
+          const SizedBox(height: 8),
+          Text(
+            intelligence.recommendationDetail,
+            style: TextStyle(color: AppTheme.textSecondary, fontSize: 13.5, height: 1.4),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _chip('Load ${intelligence.loadLabel}'),
-              _chip('Recovery ${intelligence.recoveryLabel}'),
-              _chip('Blue ${intelligence.zoneLabel}'),
-              _chip(AppSettingsService.shortDistanceLabel(data.weeklyDistanceKm, settings.unitSystem)),
+              Expanded(
+                flex: 4,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Engine state',
+                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '$engineScore · ${intelligence.engineDescription}',
+                      style: TextStyle(color: AppTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.w700, height: 1.3),
+                    ),
+                    const SizedBox(height: 8),
+                    _chip(AppSettingsService.shortDistanceLabel(data.weeklyDistanceKm, settings.unitSystem)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 3,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: EngineRing(score: engineScore, state: engineState),
+                ),
+              ),
             ],
           ),
         ],
@@ -188,82 +207,68 @@ class _DashboardTab extends StatelessWidget {
     );
   }
 
-  Widget _scoreGrid(BlueraLoadAssessment intelligence, MockAthleteData data, bool isMobile) {
-    return GridView.count(
-      crossAxisCount: 2,
-      childAspectRatio: isMobile ? 1.7 : 2.0,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 10,
-      mainAxisSpacing: 10,
+  Widget _keySignals(BlueraLoadAssessment intelligence, MockAthleteData data, bool isMobile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _metricCard('Fatigue state', '${intelligence.fatigueScore}/100', intelligence.loadLabel),
-        _metricCard('Recovery state', '${intelligence.recoveryScore}/100', intelligence.recoveryLabel),
-        _metricCard('Blue time', '${data.snapshot.zones.bluePercent.toStringAsFixed(0)}%', 'Z1 + Z2 distribution'),
-        _metricCard('Zone balance', '${intelligence.blueBalanceScore}/100', intelligence.zoneLabel),
+        Text('Key signals', style: TextStyle(color: AppTheme.textPrimary, fontSize: 17, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _signalCard('Recovery', '${intelligence.recoveryScore}/100', intelligence.recoveryLabel),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _signalCard('Fatigue', '${intelligence.fatigueScore}/100', intelligence.loadLabel),
+            ),
+            if (!isMobile) ...[
+              const SizedBox(width: 8),
+              Expanded(
+                child: _signalCard('Blue balance', '${intelligence.blueBalanceScore}/100', intelligence.zoneLabel),
+              ),
+            ],
+          ],
+        ),
+        if (isMobile) ...[
+          const SizedBox(height: 8),
+          _signalCard('Blue balance', '${intelligence.blueBalanceScore}/100', '${intelligence.zoneLabel} · ${data.snapshot.zones.bluePercent.toStringAsFixed(0)}% blue'),
+        ],
       ],
     );
   }
 
-  Widget _recommendationCard(BlueraLoadAssessment intelligence) {
+  Widget _secondaryInsight(BlueraLoadAssessment intelligence) {
+    final insight = intelligence.quickInsights.isNotEmpty ? intelligence.quickInsights.first : null;
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppTheme.card,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.accent.withOpacity(0.25)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.textPrimary.withOpacity(0.08)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text('Weekly focus', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w700, fontSize: 15)),
+          const SizedBox(height: 6),
           Text(
-            intelligence.recommendationTitle,
-            style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w800, fontSize: 18),
+            insight?.title ?? 'Stay consistent in your blue sessions.',
+            style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w700, fontSize: 14),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
-            intelligence.recommendationDetail,
-            style: TextStyle(color: AppTheme.textSecondary, fontSize: 13.5, height: 1.4),
+            insight?.message ?? intelligence.engineDescription,
+            style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.35),
           ),
         ],
       ),
     );
   }
 
-  Widget _quickInsights(BlueraLoadAssessment intelligence) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Quick insights', style: TextStyle(color: AppTheme.textPrimary, fontSize: 18, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 8),
-        ...intelligence.quickInsights.map(
-          (insight) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppTheme.card,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.textPrimary.withOpacity(0.08)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(insight.title, style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 4),
-                  Text(insight.message, style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.35)),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _metricCard(String title, String value, String subtitle) {
+  Widget _signalCard(String title, String value, String subtitle) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -273,11 +278,12 @@ class _DashboardTab extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(title, style: TextStyle(color: AppTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
           Text(value, style: TextStyle(color: AppTheme.textPrimary, fontSize: 20, fontWeight: FontWeight.w800)),
-          Text(subtitle, style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+          const SizedBox(height: 4),
+          Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
         ],
       ),
     );
