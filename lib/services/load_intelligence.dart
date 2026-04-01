@@ -20,6 +20,26 @@ class BlueraInsight {
   });
 }
 
+class BlueraCalendarRecommendation {
+  final String sessionTitle;
+  final String workoutType;
+  final String durationLabel;
+  final String intensityLabel;
+  final String reason;
+  final String weeklyFocus;
+  final String readinessSummary;
+
+  const BlueraCalendarRecommendation({
+    required this.sessionTitle,
+    required this.workoutType,
+    required this.durationLabel,
+    required this.intensityLabel,
+    required this.reason,
+    required this.weeklyFocus,
+    required this.readinessSummary,
+  });
+}
+
 class BlueraLoadAssessment {
   final int engineScore;
   final int fatigueScore;
@@ -103,9 +123,87 @@ class BlueraLoadIntelligence {
       todayFocus: recommendation.$2,
       recommendationTitle: recommendation.$1,
       recommendationDetail: recommendation.$2,
-      engineDescription: _engineDescription(engineScore, recoveryScore, fatigueScore),
-      quickInsights: _quickInsights(data, fatigueScore, recoveryScore, blueBalanceScore),
+      engineDescription: _engineDescription(
+        engineScore,
+        recoveryScore,
+        fatigueScore,
+      ),
+      quickInsights: _quickInsights(
+        data,
+        fatigueScore,
+        recoveryScore,
+        blueBalanceScore,
+      ),
       recommendations: _recommendations(data, recommendation.$1, recommendation.$2),
+    );
+  }
+
+  static BlueraCalendarRecommendation calendarRecommendation(
+    MockAthleteData data,
+    BlueraLoadAssessment assessment,
+  ) {
+    final todaySession = data.weeklyCalendar.firstWhere(
+      (session) => session.isToday,
+      orElse: () => data.weeklyCalendar.first,
+    );
+
+    final nextQuality = data.weeklyCalendar.firstWhere(
+      (session) => !session.completed && !session.isRestDay,
+      orElse: () => todaySession,
+    );
+
+    final isRecoveryDay = assessment.recoveryState == BlueraRecoveryState.recoveryNeeded ||
+        assessment.fatigueScore >= 80;
+
+    final String weeklyFocus;
+    if (assessment.zoneState == BlueraZoneState.needsAdjustment) {
+      weeklyFocus = 'Re-center the week in Z1-Z2. Prioritize aerobic consistency before adding more intensity.';
+    } else if (assessment.loadLevel == BlueraLoadLevel.high) {
+      weeklyFocus = 'Absorb recent load with controlled endurance and one key quality stimulus when freshness is stable.';
+    } else {
+      weeklyFocus = 'Progress endurance with mostly blue sessions and one controlled quality day.';
+    }
+
+    final String readinessSummary =
+        'Readiness ${assessment.recoveryLabel.toLowerCase()} • Fatigue ${assessment.fatigueScore}/100 • Engine ${assessment.engineScore}/100';
+
+    if (isRecoveryDay) {
+      return BlueraCalendarRecommendation(
+        sessionTitle: 'Recovery spin recommended',
+        workoutType: 'Recovery',
+        durationLabel: '40-55 min',
+        intensityLabel: 'Z1',
+        reason:
+            'Fatigue and recovery markers suggest keeping stress low today so you can respond better to upcoming work.',
+        weeklyFocus: weeklyFocus,
+        readinessSummary: readinessSummary,
+      );
+    }
+
+    if (assessment.zoneState == BlueraZoneState.slightlyHigh ||
+        data.snapshot.context.travelFatigue ||
+        data.snapshot.context.heatStress) {
+      return BlueraCalendarRecommendation(
+        sessionTitle: 'Stay aerobic today',
+        workoutType: 'Endurance',
+        durationLabel: todaySession.durationLabel,
+        intensityLabel: 'Z1-Z2',
+        reason:
+            'Recent load is manageable, but keeping this session aerobic protects consistency and keeps the week on track.',
+        weeklyFocus: weeklyFocus,
+        readinessSummary: readinessSummary,
+      );
+    }
+
+    return BlueraCalendarRecommendation(
+      sessionTitle: 'You are ready for quality work',
+      workoutType: nextQuality.type,
+      durationLabel: nextQuality.durationLabel,
+      intensityLabel: nextQuality.intensityLabel,
+      reason:
+          'Recovery and load balance are aligned. A controlled quality session is appropriate and should be well absorbed.',
+      weeklyFocus: weeklyFocus,
+      readinessSummary: readinessSummary,
     );
   }
 
@@ -150,10 +248,8 @@ class BlueraLoadIntelligence {
     required int blueBalanceScore,
     required int fitness,
   }) {
-    final weighted = (fitness * 0.30) +
-        ((100 - fatigueScore) * 0.30) +
-        (recoveryScore * 0.25) +
-        (blueBalanceScore * 0.15);
+    final weighted =
+        (fitness * 0.30) + ((100 - fatigueScore) * 0.30) + (recoveryScore * 0.25) + (blueBalanceScore * 0.15);
     return weighted.round().clamp(0, 100);
   }
 
@@ -186,7 +282,8 @@ class BlueraLoadIntelligence {
     required BlueraRecoveryState recoveryState,
     required BlueraLoadLevel loadLevel,
   }) {
-    if (recoveryState == BlueraRecoveryState.recoveryNeeded || loadLevel == BlueraLoadLevel.high) {
+    if (recoveryState == BlueraRecoveryState.recoveryNeeded ||
+        loadLevel == BlueraLoadLevel.high) {
       return BlueraEngineState.red;
     }
     if (engineScore >= 78 && recoveryState == BlueraRecoveryState.good) {
@@ -275,17 +372,20 @@ class BlueraLoadIntelligence {
     return [
       BlueraInsight(
         title: 'Fatigue state',
-        message: 'Current fatigue score is $fatigueScore/100 with AC ratio ${data.snapshot.load.acuteChronicRatio.toStringAsFixed(2)}.',
+        message:
+            'Current fatigue score is $fatigueScore/100 with AC ratio ${data.snapshot.load.acuteChronicRatio.toStringAsFixed(2)}.',
         positive: fatigueScore < 70,
       ),
       BlueraInsight(
         title: 'Recovery state',
-        message: 'Recovery is $recoveryScore/100 from HRV, RHR, sleep and soreness markers.',
+        message:
+            'Recovery is $recoveryScore/100 from HRV, RHR, sleep and soreness markers.',
         positive: recoveryScore >= 65,
       ),
       BlueraInsight(
         title: 'Blue-time balance',
-        message: 'Blue balance is $blueBalanceScore/100 with ${data.snapshot.zones.bluePercent.toStringAsFixed(0)}% in Z1-Z2.',
+        message:
+            'Blue balance is $blueBalanceScore/100 with ${data.snapshot.zones.bluePercent.toStringAsFixed(0)}% in Z1-Z2.',
         positive: blueBalanceScore >= 80,
       ),
     ];
@@ -297,7 +397,11 @@ class BlueraLoadIntelligence {
     String detail,
   ) {
     return [
-      AthleteRecommendation(title: title, message: detail, warning: title == 'Recovery day recommended'),
+      AthleteRecommendation(
+        title: title,
+        message: detail,
+        warning: title == 'Recovery day recommended',
+      ),
       ...data.recommendations,
     ];
   }
