@@ -8,6 +8,8 @@ enum BlueraZoneState { onTarget, slightlyHigh, needsAdjustment }
 
 enum BlueraEngineState { blue, green, red }
 
+enum BlueraDurabilityState { stable, building, fading }
+
 class BlueraInsight {
   final String title;
   final String message;
@@ -37,6 +39,42 @@ class BlueraCalendarRecommendation {
     required this.reason,
     required this.weeklyFocus,
     required this.readinessSummary,
+  });
+}
+
+class BlueraDurabilityAssessment {
+  final int score;
+  final BlueraDurabilityState state;
+  final String stateLabel;
+  final double hrDriftPercent;
+  final int firstHalfHeartRate;
+  final int secondHalfHeartRate;
+  final int firstHalfPower;
+  final int secondHalfPower;
+  final double lateSessionPowerDropPercent;
+  final double aerobicControlPercent;
+  final String hrDriftInsight;
+  final String lateFadeInsight;
+  final String aerobicControlInsight;
+  final String stabilitySummary;
+  final String coachingRecommendation;
+
+  const BlueraDurabilityAssessment({
+    required this.score,
+    required this.state,
+    required this.stateLabel,
+    required this.hrDriftPercent,
+    required this.firstHalfHeartRate,
+    required this.secondHalfHeartRate,
+    required this.firstHalfPower,
+    required this.secondHalfPower,
+    required this.lateSessionPowerDropPercent,
+    required this.aerobicControlPercent,
+    required this.hrDriftInsight,
+    required this.lateFadeInsight,
+    required this.aerobicControlInsight,
+    required this.stabilitySummary,
+    required this.coachingRecommendation,
   });
 }
 
@@ -138,6 +176,49 @@ class BlueraLoadIntelligence {
     );
   }
 
+  static BlueraDurabilityAssessment assessDurability(MockAthleteData data) {
+    final workout = data.latestWorkout;
+    final hrDrift = workout.hrDrift;
+
+    final firstHalfHeartRate = (workout.avgHeartRate - 2).clamp(80, 220).toInt();
+    final secondHalfHeartRate = (workout.avgHeartRate + 4).clamp(80, 220).toInt();
+
+    final firstHalfPower = (workout.avgPower + 8).clamp(80, 600).toInt();
+    final secondHalfPower = (workout.avgPower - 10).clamp(80, 600).toInt();
+
+    final lateSessionPowerDropPercent =
+        (((firstHalfPower - secondHalfPower) / firstHalfPower) * 100).clamp(0, 25).toDouble();
+
+    final aerobicControlPercent = (100 - (hrDrift * 4.0) - (lateSessionPowerDropPercent * 1.5))
+        .clamp(45, 97)
+        .toDouble();
+
+    final score =
+        (workout.durabilityScore * 0.55 + aerobicControlPercent * 0.30 + (100 - hrDrift * 6) * 0.15)
+            .round()
+            .clamp(0, 100);
+
+    final state = _durabilityState(score: score, hrDrift: hrDrift, powerDrop: lateSessionPowerDropPercent);
+
+    return BlueraDurabilityAssessment(
+      score: score,
+      state: state,
+      stateLabel: _durabilityLabel(state),
+      hrDriftPercent: hrDrift,
+      firstHalfHeartRate: firstHalfHeartRate,
+      secondHalfHeartRate: secondHalfHeartRate,
+      firstHalfPower: firstHalfPower,
+      secondHalfPower: secondHalfPower,
+      lateSessionPowerDropPercent: lateSessionPowerDropPercent,
+      aerobicControlPercent: aerobicControlPercent,
+      hrDriftInsight: _hrDriftInsight(hrDrift),
+      lateFadeInsight: _lateFadeInsight(lateSessionPowerDropPercent),
+      aerobicControlInsight: _aerobicControlInsight(aerobicControlPercent),
+      stabilitySummary: _stabilitySummary(state, hrDrift, lateSessionPowerDropPercent),
+      coachingRecommendation: _durabilityRecommendation(state, hrDrift, lateSessionPowerDropPercent),
+    );
+  }
+
   static BlueraCalendarRecommendation calendarRecommendation(
     MockAthleteData data,
     BlueraLoadAssessment assessment,
@@ -159,7 +240,8 @@ class BlueraLoadIntelligence {
     if (assessment.zoneState == BlueraZoneState.needsAdjustment) {
       weeklyFocus = 'Re-center the week in Z1-Z2. Prioritize aerobic consistency before adding more intensity.';
     } else if (assessment.loadLevel == BlueraLoadLevel.high) {
-      weeklyFocus = 'Absorb recent load with controlled endurance and one key quality stimulus when freshness is stable.';
+      weeklyFocus =
+          'Absorb recent load with controlled endurance and one key quality stimulus when freshness is stable.';
     } else {
       weeklyFocus = 'Progress endurance with mostly blue sessions and one controlled quality day.';
     }
@@ -212,12 +294,8 @@ class BlueraLoadIntelligence {
     final rhrPenalty = ((recovery.restingHeartRate - recovery.restingHeartRateBaseline) * 6)
         .clamp(0, 20)
         .toDouble();
-    final hrvBonus = ((recovery.hrvMs - recovery.hrvBaselineMs) * 2)
-        .clamp(-14, 14)
-        .toDouble();
-    final sleepScore = ((recovery.sleepHours / recovery.sleepNeedHours) * 22)
-        .clamp(0, 22)
-        .toDouble();
+    final hrvBonus = ((recovery.hrvMs - recovery.hrvBaselineMs) * 2).clamp(-14, 14).toDouble();
+    final sleepScore = ((recovery.sleepHours / recovery.sleepNeedHours) * 22).clamp(0, 22).toDouble();
     final sorenessPenalty = (recovery.soreness * 4).clamp(0, 24).toDouble();
 
     final score = (62 + hrvBonus + sleepScore - rhrPenalty - sorenessPenalty).round();
@@ -248,8 +326,10 @@ class BlueraLoadIntelligence {
     required int blueBalanceScore,
     required int fitness,
   }) {
-    final weighted =
-        (fitness * 0.30) + ((100 - fatigueScore) * 0.30) + (recoveryScore * 0.25) + (blueBalanceScore * 0.15);
+    final weighted = (fitness * 0.30) +
+        ((100 - fatigueScore) * 0.30) +
+        (recoveryScore * 0.25) +
+        (blueBalanceScore * 0.15);
     return weighted.round().clamp(0, 100);
   }
 
@@ -282,14 +362,80 @@ class BlueraLoadIntelligence {
     required BlueraRecoveryState recoveryState,
     required BlueraLoadLevel loadLevel,
   }) {
-    if (recoveryState == BlueraRecoveryState.recoveryNeeded ||
-        loadLevel == BlueraLoadLevel.high) {
+    if (recoveryState == BlueraRecoveryState.recoveryNeeded || loadLevel == BlueraLoadLevel.high) {
       return BlueraEngineState.red;
     }
     if (engineScore >= 78 && recoveryState == BlueraRecoveryState.good) {
       return BlueraEngineState.green;
     }
     return BlueraEngineState.blue;
+  }
+
+  static BlueraDurabilityState _durabilityState({
+    required int score,
+    required double hrDrift,
+    required double powerDrop,
+  }) {
+    if (score >= 80 && hrDrift <= 5.2 && powerDrop <= 6.5) {
+      return BlueraDurabilityState.stable;
+    }
+    if (score >= 68 && hrDrift <= 6.8 && powerDrop <= 9.5) {
+      return BlueraDurabilityState.building;
+    }
+    return BlueraDurabilityState.fading;
+  }
+
+  static String _durabilityLabel(BlueraDurabilityState state) {
+    switch (state) {
+      case BlueraDurabilityState.stable:
+        return 'Stable';
+      case BlueraDurabilityState.building:
+        return 'Building';
+      case BlueraDurabilityState.fading:
+        return 'Fading';
+    }
+  }
+
+  static String _hrDriftInsight(double hrDrift) {
+    if (hrDrift <= 4.5) return 'HR drift remained controlled for this aerobic session.';
+    if (hrDrift <= 6.0) return 'Moderate decoupling. Durability is building well with room to tighten control.';
+    return 'Too much decoupling for a controlled aerobic session.';
+  }
+
+  static String _lateFadeInsight(double powerDrop) {
+    if (powerDrop <= 5.5) return 'Power held well through the final third.';
+    if (powerDrop <= 8.5) return 'Mild late fade appeared but remained manageable.';
+    return 'Late fade suggests durability needs work.';
+  }
+
+  static String _aerobicControlInsight(double control) {
+    if (control >= 82) return 'Stable aerobic durability across the session.';
+    if (control >= 72) return 'Aerobic control is improving and trending in the right direction.';
+    return 'Aerobic control dropped too much late. Keep sessions steadier.';
+  }
+
+  static String _stabilitySummary(BlueraDurabilityState state, double hrDrift, double powerDrop) {
+    switch (state) {
+      case BlueraDurabilityState.stable:
+        return 'Stable aerobic durability (${hrDrift.toStringAsFixed(1)}% drift, ${powerDrop.toStringAsFixed(1)}% late fade).';
+      case BlueraDurabilityState.building:
+        return 'Durability is building well but still sensitive to late-session fade.';
+      case BlueraDurabilityState.fading:
+        return 'Durability is fading late, driven by elevated decoupling and power drop.';
+    }
+  }
+
+  static String _durabilityRecommendation(BlueraDurabilityState state, double hrDrift, double powerDrop) {
+    if (state == BlueraDurabilityState.stable) {
+      return 'Keep one longer steady Z2 session this week and avoid unnecessary surges. You are holding durability well.';
+    }
+    if (state == BlueraDurabilityState.building) {
+      return 'Progress durability with controlled endurance: 75-90 min steady Z2 and finish with 10-15 min at upper aerobic pressure.';
+    }
+    if (hrDrift > 6.5 || powerDrop > 9.0) {
+      return 'Reduce session intensity spikes and build durability through flatter power pacing before reintroducing hard finish work.';
+    }
+    return 'Prioritize a smooth aerobic ride next, then reassess durability trend after two consistent low-variability sessions.';
   }
 
   static (String, String) _dailyRecommendation({
@@ -378,8 +524,7 @@ class BlueraLoadIntelligence {
       ),
       BlueraInsight(
         title: 'Recovery state',
-        message:
-            'Recovery is $recoveryScore/100 from HRV, RHR, sleep and soreness markers.',
+        message: 'Recovery is $recoveryScore/100 from HRV, RHR, sleep and soreness markers.',
         positive: recoveryScore >= 65,
       ),
       BlueraInsight(
